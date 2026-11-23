@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>GWP Data — Arquitetura, Análise, Dashboards e Live Tracking</title>
+<meta name="description" content="GWP Data: arquitetura e estruturação de dados, análise de dados, dashboards e live trackings. Seus dados, organizados e ao vivo.">
+<meta name="theme-color" content="#0D1F47">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta property="og:title" content="GWP Data — Seus dados, organizados e ao vivo.">
+<meta property="og:description" content="Arquitetura de dados, análise, dashboards e live trackings.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230D1F47'/><rect x='18' y='26' width='12' height='12' fill='%231E9BEF'/><path d='M30 26h16v20H22' fill='none' stroke='white' stroke-width='6'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF;font-family:Inter,system-ui,sans-serif;color:#0D1F47;-webkit-font-smoothing:antialiased}
+a{color:#0D1F47;text-decoration:none}a:hover{color:#0A72D1}
+*{box-sizing:border-box}
+details summary{list-style:none;cursor:pointer}
+details summary::-webkit-details-marker{display:none}
+details[open] .gwp-plus{transform:rotate(45deg)}
+.gwp-plus{transition:transform .2s ease}
+@keyframes gwppulse{0%{box-shadow:0 0 0 0 rgba(30,155,239,.6)}70%{box-shadow:0 0 0 10px rgba(30,155,239,0)}100%{box-shadow:0 0 0 0 rgba(30,155,239,0)}}
+.gwp-live{animation:gwppulse 1.6s infinite}
+@keyframes gwpmarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.gwp-marquee{animation:gwpmarquee 28s linear infinite}
+.gwp-card{transition:transform .25s ease,box-shadow .25s ease}
+.gwp-card:hover{transform:translateY(-4px);box-shadow:0 18px 36px -18px rgba(13,31,71,.45)}
+@keyframes gwpflow{to{stroke-dashoffset:-40}}
+.gwp-flow{stroke-dasharray:6 6;animation:gwpflow 1.6s linear infinite}
+@keyframes gwpnode{0%,100%{opacity:.35}50%{opacity:1}}
+.gwp-node{animation:gwpnode 2.4s ease-in-out infinite}
+.gwp-node.d1{animation-delay:.4s}.gwp-node.d2{animation-delay:.8s}.gwp-node.d3{animation-delay:1.2s}.gwp-node.d4{animation-delay:1.6s}
+@keyframes gwpbar{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+.gwp-eq{transform-origin:bottom;animation:gwpbar 1.4s ease-in-out infinite}
+@keyframes gwpfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.gwp-float{animation:gwpfloat 5s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.gwp-marquee,.gwp-live,.gwp-flow,.gwp-node,.gwp-eq,.gwp-float{animation:none}.gwp-card:hover{transform:none}}
+input:focus,textarea:focus,select:focus{outline:2px solid #1E9BEF;outline-offset:1px}
+</style>
+<style>
+/* ===== Base / mobile hardening ===== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth;overflow-x:hidden}
+html,body{max-width:100%;overflow-x:hidden}
+body{padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+img,svg{max-width:100%}
+section{scroll-margin-top:84px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+.gwp-card{transition:transform .25s ease,box-shadow .25s ease}
+.gwp-card:hover{transform:none;box-shadow:none}
+@media (hover:hover) and (pointer:fine){.gwp-card:hover{transform:translateY(-4px);box-shadow:0 18px 36px -18px rgba(13,31,71,.45)}}
+button,summary,a{-webkit-tap-highlight-color:rgba(10,114,209,.15)}
+
+/* ===== Header ===== */
+.gwp-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:3px solid #0D1F47;padding-top:env(safe-area-inset-top)}
+.gwp-head{max-width:1200px;margin:0 auto;padding:12px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.gwp-brand{display:flex;align-items:center;min-height:44px}
+.gwp-logo{height:44px;width:auto;display:block}
+.gwp-nav{display:flex;align-items:center;gap:8px 28px;font-size:14px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.gwp-nav a{min-height:44px;display:inline-flex;align-items:center;color:#0D1F47}
+.gwp-nav a.gwp-cta{background:#0D1F47;color:#FFFFFF;padding:0 24px;border-radius:999px;letter-spacing:.06em;margin-left:8px}
+.gwp-nav a.gwp-cta:hover{background:#0A72D1;color:#FFFFFF}
+.gwp-burger{display:none;width:44px;height:44px;border:0;border-radius:10px;background:#0D1F47;cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0}
+.gwp-burger span{display:block;width:20px;height:2px;background:#FFFFFF;border-radius:2px;transition:transform .2s ease,opacity .2s ease}
+.gwp-burger[aria-expanded="true"] span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.gwp-burger[aria-expanded="true"] span:nth-child(2){opacity:0}
+.gwp-burger[aria-expanded="true"] span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* ===== Tablet / large phones ===== */
+@media (max-width: 768px){
+  section{scroll-margin-top:72px}
+  .gwp-head{padding:10px 20px;flex-wrap:wrap}
+  .gwp-logo{height:36px}
+  .gwp-burger{display:flex}
+  .gwp-nav{display:none;width:100%;flex-direction:column;align-items:stretch;gap:4px;padding:8px 0 12px;font-size:15px}
+  .gwp-nav.is-open{display:flex}
+  .gwp-nav a{justify-content:center;min-height:48px;border-radius:10px;background:#EAF1FA}
+  .gwp-nav a.gwp-cta{margin-left:0}
+  .gwp-wrap{padding:56px 20px !important;gap:28px !important}
+  .gwp-h1{font-size:40px !important}
+  .gwp-h2{font-size:30px !important}
+  .gwp-wrap[style*="flex-wrap: wrap"] > *{flex-basis:100% !important}
+  .gwp-svc{padding:22px !important}
+  .gwp-form{padding:22px !important}
+  .gwp-wrap [style*="justify-content: space-between"] > p{flex-basis:100% !important}
+  .gwp-wrap [style*="minmax(240px"], .gwp-wrap [style*="minmax(300px"], .gwp-wrap [style*="minmax(220px"]{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+}
+
+/* ===== Phones ===== */
+@media (max-width: 480px){
+  .gwp-wrap{padding:44px 16px !important;gap:24px !important}
+  .gwp-head{padding:8px 16px}
+  .gwp-h1{font-size:34px !important;line-height:1.08 !important}
+  .gwp-h2{font-size:26px !important}
+  .gwp-wrap p{font-size:16px !important}
+  .gwp-wrap [style*="grid-template-columns"]{grid-template-columns:1fr !important}
+  .gwp-panel [style*="minmax(96px"]{grid-template-columns:repeat(3,minmax(0,1fr)) !important}
+  .gwp-panel [style*="font-size: 24px"]{font-size:19px !important}
+  .gwp-panel{padding:16px !important}
+  .gwp-wrap a[style*="border-radius: 999px"]{width:100%;justify-content:center}
+  .gwp-form button{width:100%}
+  details summary{font-size:16px !important}
+  .gwp-hero > svg{opacity:.5}
+  article svg[style*="position: absolute"]{display:none}
+}
+</style>
+</head>
+<body>
+<div style="width: 100%; background: #FFFFFF; color: #0D1F47">
+
+<!-- HEADER -->
+<header class="gwp-header">
+<div class="gwp-head">
+<a href="#topo" class="gwp-brand" aria-label="GWP Data — Home"><svg class="gwp-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 655" aria-hidden="true" focusable="false">
+<g fill="#0D1F47">
+<path d="M313 8 L172 8 C72 8 5 71 5 165.5 C5 260 72 323 172 323 L396 323 L396 183 L375 147 L220 147 L220 193 L348 193 L348 275 L172 275 C102 275 52 230 52 165.5 C52 101 102 55 172 55 L335 55 Z"/>
+<path d="M365 8 L415 8 L532 222 L637 6 L746 222 L862 8 L888 55 L748 326 L637 118 L531 326 Z M862 8 L1093 8 A100 100 0 0 1 1093 208 L932 208 L932 323 L885 323 L885 160 L1095 160 A52.5 52.5 0 0 0 1095 55 L888 55 Z"/>
+<path fill-rule="evenodd" d="M13 453 L120 453 A97 97 0 0 1 120 647 L13 647 Z M37 477 L120 477 A73 73 0 0 1 120 623 L37 623 Z"/>
+<path fill-rule="evenodd" d="M438 453 L462 453 L563 647 L538 647 L507 593 L393 593 L357 647 L332 647 Z M450 482 L495 570 L405 570 Z"/>
+<path d="M665 453 L850 453 L850 476 L768 476 L768 647 L744 647 L744 476 L665 476 Z"/>
+<path fill-rule="evenodd" d="M1058 453 L1082 453 L1183 647 L1158 647 L1127 593 L1013 593 L977 647 L952 647 Z M1070 482 L1115 570 L1025 570 Z"/>
+</g>
+<rect x="172" y="147" width="48" height="46" fill="#1E9BEF"/>
+</svg></a>
+<button type="button" class="gwp-burger" aria-label="Abrir menu" aria-expanded="false" aria-controls="gwp-nav"><span></span><span></span><span></span></button>
+<nav id="gwp-nav" class="gwp-nav" aria-label="Principal">
+<a href="#topo">Home</a>
+<a href="#servicos">Products</a>
+<a href="#cases">Cases</a>
+<a href="#contato" class="gwp-cta">Contact</a>
+</nav>
+</div>
+</header>
+
+<!-- HERO -->
+<section id="topo" class="gwp-hero" style="position: relative; overflow: hidden; background-color: #EAF1FA; background-image: radial-gradient(#C9D8EC 1.2px, transparent 1.2px); background-size: 22px 22px">
+<svg aria-hidden="true" viewBox="0 0 1440 640" preserveAspectRatio="xMidYMid slice" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none">
+<g stroke="#0A72D1" stroke-opacity="0.22" stroke-width="1.2" fill="none">
+<path class="gwp-flow" d="M40 120 L220 60 L420 150 L600 70"></path>
+<path class="gwp-flow" d="M60 520 L250 440 L380 560 L560 470"></path>
+<path d="M220 60 L250 440"></path><path d="M420 150 L380 560"></path>
+<path class="gwp-flow" d="M1120 40 L1300 120 L1420 60"></path>
+<path class="gwp-flow" d="M1080 600 L1260 540 L1410 610"></path>
+<path d="M1300 120 L1260 540"></path>
+</g>
+<g fill="#0A72D1">
+<circle class="gwp-node" cx="40" cy="120" r="4"></circle><circle class="gwp-node d1" cx="220" cy="60" r="6"></circle><circle class="gwp-node d2" cx="420" cy="150" r="5"></circle><circle class="gwp-node d3" cx="600" cy="70" r="4"></circle>
+<circle class="gwp-node d2" cx="60" cy="520" r="5"></circle><circle class="gwp-node d3" cx="250" cy="440" r="6"></circle><circle class="gwp-node d4" cx="380" cy="560" r="4"></circle><circle class="gwp-node d1" cx="560" cy="470" r="5"></circle>
+<circle class="gwp-node d1" cx="1120" cy="40" r="4"></circle><circle class="gwp-node d3" cx="1300" cy="120" r="6"></circle><circle class="gwp-node" cx="1420" cy="60" r="4"></circle>
+<circle class="gwp-node d4" cx="1080" cy="600" r="4"></circle><circle class="gwp-node d2" cx="1260" cy="540" r="6"></circle><circle class="gwp-node d1" cx="1410" cy="610" r="4"></circle>
+</g>
+</svg>
+<div class="gwp-wrap" style="position: relative; max-width: 1200px; margin: 0 auto; padding: 72px 32px; display: flex; flex-wrap: wrap; gap: 48px; align-items: center">
+<div style="flex: 1 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 24px; align-items: flex-start">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #FFFFFF; background: #0D1F47; padding: 8px 14px; border-radius: 999px">+ Consultoria de dados ponta a ponta</span>
+<h1 class="gwp-h1" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(40px, 5vw, 64px); line-height: 1.02; letter-spacing: -0.035em; color: #0D1F47">Seus dados, organizados e <span style="color: #0A72D1">ao vivo.</span></h1>
+<p style="margin: 0; font-size: 18px; line-height: 1.6; color: #33415C; max-width: 540px">A GWP Data estrutura a base, analisa o que importa e coloca a informação em movimento — da arquitetura de dados ao painel que atualiza enquanto o negócio acontece.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<a href="#contato" style="background: #0A72D1; color: #FFFFFF; font-weight: 600; font-size: 16px; padding: 14px 24px; border-radius: 999px; min-height: 48px; display: inline-flex; align-items: center">Agendar uma conversa</a>
+<a href="#servicos" style="border: 2px solid #0D1F47; background: #FFFFFF; color: #0D1F47; font-weight: 600; font-size: 16px; padding: 12px 22px; border-radius: 999px; min-height: 48px; display: inline-flex; align-items: center">Conhecer os serviços</a>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #0D1F47">
+<span style="display: inline-flex; align-items: center; gap: 6px; background: #FFFFFF; border: 1px solid #C9D3E3; border-radius: 8px; padding: 6px 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A72D1" stroke-width="2" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"></path></svg>SQL · ETL</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; background: #FFFFFF; border: 1px solid #C9D3E3; border-radius: 8px; padding: 6px 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A72D1" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>BI · KPIs</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; background: #FFFFFF; border: 1px solid #C9D3E3; border-radius: 8px; padding: 6px 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A72D1" stroke-width="2" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"></path></svg>IA · Previsões</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; background: #FFFFFF; border: 1px solid #C9D3E3; border-radius: 8px; padding: 6px 10px"><span class="gwp-live" style="width: 7px; height: 7px; border-radius: 50%; background: #1E9BEF"></span>Streaming</span>
+</div>
+</div>
+
+<!-- live panel mock -->
+<div class="gwp-panel" style="flex: 1 1 420px; min-width: 0; background: #0D1F47; color: #FFFFFF; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 30px 60px -20px rgba(13,31,71,0.45)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A9B6CE; text-transform: uppercase; letter-spacing: 0.08em">Painel de exemplo</span>
+<span style="display: inline-flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6CC0F7"><span class="gwp-live" style="width: 8px; height: 8px; border-radius: 50%; background: #1E9BEF"></span>AO VIVO · <span id="gwp-clock">--:--:--</span></span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px">
+<div style="background: #142A5C; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 12px; color: #A9B6CE">Pedidos hoje</span>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700" id="gwp-orders">3.184</span>
+</div>
+<div style="background: #142A5C; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 12px; color: #A9B6CE">Pedidos / min</span>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700" id="gwp-rate">—</span>
+</div>
+<div style="background: #142A5C; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<span style="font-size: 12px; color: #A9B6CE">vs. média</span>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: #5FD4A0" id="gwp-delta">—</span>
+</div>
+</div>
+<div style="background: #142A5C; border-radius: 12px; padding: 14px">
+<svg viewBox="0 0 400 130" width="100%" height="130" role="img" aria-label="Gráfico de linha de exemplo atualizando em tempo real" preserveAspectRatio="none">
+<line x1="0" y1="32" x2="400" y2="32" stroke="#24407A" stroke-width="1"></line>
+<line x1="0" y1="65" x2="400" y2="65" stroke="#24407A" stroke-width="1"></line>
+<line x1="0" y1="98" x2="400" y2="98" stroke="#24407A" stroke-width="1"></line>
+<polyline id="gwp-area" points="" fill="rgba(30,155,239,0.2)" stroke="none"></polyline>
+<polyline id="gwp-line" points="" fill="none" stroke="#1E9BEF" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></polyline>
+<circle id="gwp-dot" cx="400" cy="65" r="5" fill="#1E9BEF"></circle>
+</svg>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<div style="flex: 1 1 220px; background: #142A5C; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; color: #A9B6CE">Volume por hora</span>
+<svg viewBox="0 0 360 60" width="100%" height="52" preserveAspectRatio="none" aria-hidden="true"><rect class="gwp-eq" style="animation-delay: 0.00s" x="2" y="42" width="11" height="18" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 0.11s" x="19" y="36" width="11" height="24" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 0.22s" x="36" y="40" width="11" height="20" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 0.33s" x="53" y="30" width="11" height="30" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 0.44s" x="70" y="26" width="11" height="34" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 0.55s" x="87" y="32" width="11" height="28" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 0.66s" x="104" y="22" width="11" height="38" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 0.77s" x="121" y="16" width="11" height="44" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 0.88s" x="138" y="20" width="11" height="40" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 0.99s" x="155" y="12" width="11" height="48" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 1.10s" x="172" y="18" width="11" height="42" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 1.21s" x="189" y="10" width="11" height="50" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 1.32s" x="206" y="14" width="11" height="46" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 1.43s" x="223" y="4" width="11" height="56" rx="2" fill="#1E9BEF"></rect><rect class="gwp-eq" style="animation-delay: 1.54s" x="240" y="2" width="11" height="58" rx="2" fill="#1E9BEF"></rect><rect class="gwp-eq" style="animation-delay: 1.65s" x="257" y="16" width="11" height="44" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 1.76s" x="274" y="24" width="11" height="36" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 1.87s" x="291" y="20" width="11" height="40" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 1.98s" x="308" y="30" width="11" height="30" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 2.09s" x="325" y="34" width="11" height="26" rx="2" fill="#3D5C99"></rect><rect class="gwp-eq" style="animation-delay: 2.20s" x="342" y="38" width="11" height="22" rx="2" fill="#3D5C99"></rect></svg>
+</div>
+<div style="flex: 1 1 180px; background: linear-gradient(135deg, #0A72D1, #1E9BEF); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
+<span style="display: inline-flex; align-items: center; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path></svg>Insight IA</span>
+<span style="font-size: 13px; line-height: 1.4">Ritmo de pedidos <span class="gwp-delta-txt">—</span> vs. média — tendência de pico às 18h.</span>
+</div>
+</div>
+<span style="font-size: 12px; color: #A9B6CE">Ilustração de um Live Tracking — dados fictícios.</span>
+</div>
+</div>
+</section>
+
+<!-- SERVICE STRIP (marquee) -->
+<div style="background: #0D1F47; overflow: hidden">
+<div class="gwp-marquee" style="display: flex; width: max-content; padding: 18px 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; text-transform: uppercase; letter-spacing: 0.1em; color: #DCE4F2">
+<div style="display: flex; gap: 40px; padding-right: 40px; align-items: center">
+<span>Arquitetura de dados</span><span style="color: #1E9BEF">◆</span><span>Análise de dados</span><span style="color: #1E9BEF">◆</span><span>Dashboards</span><span style="color: #1E9BEF">◆</span><span>Live Trackings</span><span style="color: #1E9BEF">◆</span>
+<span>Arquitetura de dados</span><span style="color: #1E9BEF">◆</span><span>Análise de dados</span><span style="color: #1E9BEF">◆</span><span>Dashboards</span><span style="color: #1E9BEF">◆</span><span>Live Trackings</span><span style="color: #1E9BEF">◆</span>
+</div>
+<div aria-hidden="true" style="display: flex; gap: 40px; padding-right: 40px; align-items: center">
+<span>Arquitetura de dados</span><span style="color: #1E9BEF">◆</span><span>Análise de dados</span><span style="color: #1E9BEF">◆</span><span>Dashboards</span><span style="color: #1E9BEF">◆</span><span>Live Trackings</span><span style="color: #1E9BEF">◆</span>
+<span>Arquitetura de dados</span><span style="color: #1E9BEF">◆</span><span>Análise de dados</span><span style="color: #1E9BEF">◆</span><span>Dashboards</span><span style="color: #1E9BEF">◆</span><span>Live Trackings</span><span style="color: #1E9BEF">◆</span>
+</div>
+</div>
+</div>
+
+<!-- PROBLEMS -->
+<section style="background: #FFFFFF">
+<div class="gwp-wrap" style="max-width: 1200px; margin: 0 auto; padding: 80px 32px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; flex-wrap: wrap; gap: 16px 48px; align-items: flex-end; justify-content: space-between">
+<h2 class="gwp-h2" style="margin: 0; flex: 1 1 480px; font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700">Muita informação. <span style="color: #0A72D1">Pouca certeza para decidir.</span></h2>
+<p style="margin: 0; flex: 1 1 340px; font-size: 17px; line-height: 1.6; color: #33415C">Se algum destes cenários parece familiar, o problema não é falta de dado — é falta de estrutura.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px">
+<div class="gwp-card" style="background: #0D1F47; color: #FFFFFF; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #6CC0F7">01</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#6CC0F7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="6" r="2.5"></circle><circle cx="19" cy="6" r="2.5"></circle><circle cx="12" cy="18" r="2.5"></circle><path d="M7.5 6h3M13.5 6h3M6.5 8.5l2 4M17.5 8.5l-2 4" stroke-dasharray="2 2.5"></path></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 0.01em; text-transform: uppercase">Números desconexos</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #DCE4F2">Financeiro, comercial e operação discutem qual planilha está certa em vez de discutir o negócio.</p>
+</div>
+<div class="gwp-card" style="background: #EAF1FA; color: #0D1F47; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #0A72D1">02</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0A72D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6"></path></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 0.01em; text-transform: uppercase">Relatórios atrasados</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #33415C">Quando o fechamento sai, a janela para agir já passou.</p>
+</div>
+<div class="gwp-card" style="background: #0D1F47; color: #FFFFFF; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #6CC0F7">03</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#6CC0F7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M3 15h18M9 3v18M15 3v18"></path></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 0.01em; text-transform: uppercase">Horas perdidas consolidando</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #DCE4F2">Exportar, colar, conferir e repetir: trabalho manual que não escala e abre espaço para erro.</p>
+</div>
+<div class="gwp-card" style="background: #EAF1FA; color: #0D1F47; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #0A72D1">04</span><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0A72D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle><path d="M3 3l18 18"></path></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 0.01em; text-transform: uppercase">Ninguém vê o agora</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #33415C">A operação roda em tempo real, mas a gestão só enxerga o retrovisor.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- SERVICES -->
+<section id="servicos" style="background-color: #0D1F47; background-image: linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px); background-size: 40px 40px;  color: #FFFFFF">
+<div class="gwp-wrap" style="max-width: 1200px; margin: 0 auto; padding: 80px 32px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; flex-wrap: wrap; gap: 16px 48px; align-items: flex-end; justify-content: space-between">
+<div style="flex: 1 1 480px; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #6CC0F7">/ 01 Serviços</span>
+<h2 class="gwp-h2" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700">Quatro frentes, uma base de dados que se sustenta.</h2>
+</div>
+<p style="margin: 0; flex: 1 1 340px; font-size: 17px; line-height: 1.6; color: #DCE4F2">Começamos pela fundação, porque é ela que faz a análise, o dashboard e o acompanhamento em tempo real funcionarem.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 16px">
+
+<article class="gwp-card gwp-svc" style="background: #142A5C; border: 1px solid #24407A; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #6CC0F7">01</span>
+<span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #0D1F47; background: #FFFFFF; padding: 6px 12px; border-radius: 999px">Fundação</span>
+</div>
+<div aria-hidden="true" style="background: #0D1F47; border-radius: 12px; padding: 12px; height: 118px; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 400 94" width="100%" height="94" preserveAspectRatio="xMidYMid meet"><g font-family="JetBrains Mono, monospace" font-size="11" fill="#DCE4F2">
+<rect x="4" y="6" width="74" height="22" rx="5" fill="#142A5C" stroke="#24407A"></rect><text x="41" y="21" text-anchor="middle">ERP</text>
+<rect x="4" y="36" width="74" height="22" rx="5" fill="#142A5C" stroke="#24407A"></rect><text x="41" y="51" text-anchor="middle">CRM</text>
+<rect x="4" y="66" width="74" height="22" rx="5" fill="#142A5C" stroke="#24407A"></rect><text x="41" y="81" text-anchor="middle">APIs</text>
+</g>
+<g stroke="#1E9BEF" stroke-width="1.6" fill="none"><path class="gwp-flow" d="M78 17 C130 17 130 47 170 47"></path><path class="gwp-flow" d="M78 47 L170 47"></path><path class="gwp-flow" d="M78 77 C130 77 130 47 170 47"></path><path class="gwp-flow" d="M250 47 L300 47"></path></g>
+<rect x="170" y="30" width="80" height="34" rx="6" fill="#0A72D1"></rect><text x="210" y="51" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#FFFFFF">ETL / ELT</text>
+<g transform="translate(302 18)"><ellipse cx="40" cy="8" rx="38" ry="8" fill="#1E9BEF"></ellipse><path d="M2 8v42c0 4.4 17 8 38 8s38-3.6 38-8V8" fill="#142A5C" stroke="#1E9BEF" stroke-width="1.6"></path><ellipse cx="40" cy="8" rx="38" ry="8" fill="none" stroke="#1E9BEF" stroke-width="1.6"></ellipse><text x="40" y="38" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#DCE4F2">DW</text></g></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.01em">Arquitetura e Estruturação de Dados</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.55; color: #DCE4F2; text-align: center; font-family: Inter, sans-serif">Uma fonte única e confiável, conectando sistemas que hoje não conversam.</p>
+<ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 8px 16px; font-size: 14px; color: #FFFFFF">
+<li style="display: flex; gap: 8px"><span style="color: #1E9BEF">→</span>Modelagem de dados e desenho da arquitetura</li>
+<li style="display: flex; gap: 8px"><span style="color: #1E9BEF">→</span>Pipelines de integração (ETL / ELT) automatizados</li>
+<li style="display: flex; gap: 8px"><span style="color: #1E9BEF">→</span>Data warehouse / lakehouse</li>
+<li style="display: flex; gap: 8px"><span style="color: #1E9BEF">→</span>Qualidade, documentação e governança</li>
+</ul>
+</article>
+
+<article class="gwp-card gwp-svc" style="background: #FFFFFF; color: #0D1F47; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #0A72D1">02</span>
+<span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #FFFFFF; background: #0D1F47; padding: 6px 12px; border-radius: 999px">Inteligência</span>
+</div>
+<div aria-hidden="true" style="background: #EAF1FA; border-radius: 12px; padding: 12px; height: 118px; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 400 94" width="100%" height="94" preserveAspectRatio="xMidYMid meet"><g stroke="#C9D3E3" stroke-width="1"><line x1="10" y1="88" x2="390" y2="88"></line><line x1="10" y1="4" x2="10" y2="88"></line></g><circle cx="20" cy="74" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="40" cy="66" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="55" cy="78" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="70" cy="59" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="90" cy="64" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="105" cy="52" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="120" cy="56" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="140" cy="44" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="160" cy="50" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="175" cy="40" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="195" cy="42" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="210" cy="34" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="230" cy="38" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="250" cy="28" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="270" cy="32" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="290" cy="22" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="310" cy="26" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="330" cy="18" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="350" cy="20" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><circle cx="370" cy="14" r="3.5" fill="#0A72D1" fill-opacity="0.65"></circle><path class="gwp-flow" d="M14 80 L384 10" stroke="#0D1F47" stroke-width="2" fill="none"></path><rect x="296" y="56" width="88" height="24" rx="6" fill="#0D1F47"></rect><text x="340" y="72" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#FFFFFF">R² 0,87</text></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.01em">Análise de Dados</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.55; color: #33415C; font-family: Inter, sans-serif; text-align: center">Perguntas de negócio respondidas com evidência, não com intuição.</p>
+<ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 8px 16px; font-size: 14px; color: #0D1F47">
+<li style="display: flex; gap: 8px"><span style="color: #0A72D1">→</span>Diagnósticos e análises exploratórias</li>
+<li style="display: flex; gap: 8px"><span style="color: #0A72D1">→</span>Definição de KPIs e metas</li>
+<li style="display: flex; gap: 8px"><span style="color: #0A72D1">→</span>Segmentação, tendências e projeções</li>
+<li style="display: flex; gap: 8px"><span style="color: #0A72D1">→</span>Recomendações acionáveis para a gestão</li>
+</ul>
+</article>
+
+<article class="gwp-card gwp-svc" style="background: #FFFFFF; color: #0D1F47; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #0A72D1">03</span>
+<span style="font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #FFFFFF; background: #0D1F47; padding: 6px 12px; border-radius: 999px">Visualização</span>
+</div>
+<div aria-hidden="true" style="background: #EAF1FA; border-radius: 12px; padding: 12px; height: 118px; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 400 94" width="100%" height="94" preserveAspectRatio="xMidYMid meet"><rect x="10" y="54" width="16" height="34" rx="3" fill="#0D1F47"></rect><rect x="36" y="36" width="16" height="52" rx="3" fill="#0A72D1"></rect><rect x="62" y="48" width="16" height="40" rx="3" fill="#0D1F47"></rect><rect x="88" y="22" width="16" height="66" rx="3" fill="#0A72D1"></rect><rect x="114" y="30" width="16" height="58" rx="3" fill="#0D1F47"></rect><rect x="140" y="14" width="16" height="74" rx="3" fill="#0A72D1"></rect><rect x="166" y="26" width="16" height="62" rx="3" fill="#0D1F47"></rect>
+<g transform="translate(250 6)"><rect x="0" y="0" width="140" height="82" rx="8" fill="#FFFFFF" stroke="#C9D3E3"></rect>
+<circle cx="38" cy="41" r="24" fill="none" stroke="#C9D3E3" stroke-width="10"></circle>
+<circle cx="38" cy="41" r="24" fill="none" stroke="#0A72D1" stroke-width="10" stroke-dasharray="105 151" transform="rotate(-90 38 41)"></circle>
+<text x="38" y="45" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-weight="700" font-size="13" fill="#0D1F47">70%</text>
+<rect x="74" y="22" width="54" height="8" rx="4" fill="#0D1F47"></rect><rect x="74" y="38" width="40" height="8" rx="4" fill="#0A72D1"></rect><rect x="74" y="54" width="48" height="8" rx="4" fill="#C9D3E3"></rect></g></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.01em">Dashboards</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.55; color: #33415C; font-family: Inter, sans-serif; text-align: center">Painéis claros, feitos para quem decide — do executivo ao operacional.</p>
+<ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 8px 16px; font-size: 14px; color: #0D1F47">
+<li style="display: flex; gap: 8px"><span style="color: #0A72D1">→</span>Dashboards executivos e por área</li>
+<li style="display: flex; gap: 8px"><span style="color: #0A72D1">→</span>Design de informação e storytelling com dados</li>
+<li style="display: flex; gap: 8px"><span style="color: #0A72D1">→</span>Atualização automática, sem planilha no meio</li>
+<li style="display: flex; gap: 8px"><span style="color: #0A72D1">→</span>Treinamento para o time usar de verdade</li>
+</ul>
+</article>
+
+<article class="gwp-card gwp-svc" style="background: #142A5C; border: 1px solid #24407A; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #6CC0F7">04</span>
+<span style="display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #FFFFFF; background: #0A72D1; padding: 6px 12px; border-radius: 999px"><span class="gwp-live" style="width: 6px; height: 6px; border-radius: 50%; background: #FFFFFF"></span>Tempo real</span>
+</div>
+<div aria-hidden="true" style="background: #0D1F47; border-radius: 12px; padding: 12px; height: 118px; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 400 94" width="100%" height="94" preserveAspectRatio="xMidYMid meet"><g stroke="#24407A" stroke-width="1"><line x1="0" y1="24" x2="400" y2="24"></line><line x1="0" y1="47" x2="400" y2="47"></line><line x1="0" y1="70" x2="400" y2="70"></line></g>
+<line x1="0" y1="30" x2="400" y2="30" stroke="#FF9B9B" stroke-width="1.2" stroke-dasharray="4 4"></line>
+<text x="396" y="24" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="10" fill="#FF9B9B">limite</text>
+<path d="M0 66 L30 60 L60 64 L90 52 L120 56 L150 44 L180 50 L210 40 L240 46 L270 26 L300 38 L330 34 L360 42 L390 36" fill="none" stroke="#1E9BEF" stroke-width="2.4" stroke-linejoin="round"></path>
+<circle class="gwp-live" cx="270" cy="26" r="5" fill="#FF9B9B"></circle>
+<rect x="216" y="70" width="108" height="20" rx="5" fill="#142A5C" stroke="#FF9B9B"></rect><text x="270" y="84" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#FFFFFF">alerta enviado</text></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.01em">Live Trackings</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.55; color: #DCE4F2; text-align: center; font-family: Inter, sans-serif">Acompanhe a operação enquanto ela acontece e reaja no mesmo minuto.</p>
+<ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 8px 16px; font-size: 14px; color: #FFFFFF">
+<li style="display: flex; gap: 8px"><span style="color: #1E9BEF">→</span>Monitoramento contínuo de indicadores críticos</li>
+<li style="display: flex; gap: 8px"><span style="color: #1E9BEF">→</span>Alertas automáticos quando algo sai do padrão</li>
+<li style="display: flex; gap: 8px"><span style="color: #1E9BEF">→</span>Telas para salas de operação, eventos e campanhas</li>
+<li style="display: flex; gap: 8px"><span style="color: #1E9BEF">→</span>Integração com fontes de dados em streaming</li>
+</ul>
+</article>
+
+</div>
+</div>
+</section>
+
+<!-- METHOD -->
+<section id="metodo" style="background: #EAF1FA">
+<div class="gwp-wrap" style="max-width: 1200px; margin: 0 auto; padding: 80px 32px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 720px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #0A72D1">/ 02 Método</span>
+<h2 class="gwp-h2" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700">Do diagnóstico ao acompanhamento diário.</h2>
+</div>
+<ol style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px">
+<li class="gwp-card" style="background: #FFFFFF; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px; border-top: 4px solid #0D1F47">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="width: 40px; height: 40px; border-radius: 50%; background: #0D1F47; color: #FFFFFF; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center">1</span><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0D1F47" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">Diagnóstico</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #33415C">Mapeamos fontes, processos e as decisões que os dados precisam apoiar.</p>
+</li>
+<li class="gwp-card" style="background: #FFFFFF; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px; border-top: 4px solid #0A72D1">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="width: 40px; height: 40px; border-radius: 50%; background: #0A72D1; color: #FFFFFF; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center">2</span><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0A72D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"></ellipse><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"></path><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"></path></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">Estruturação</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #33415C">Construímos a arquitetura e os pipelines que dão origem a um número único.</p>
+</li>
+<li class="gwp-card" style="background: #FFFFFF; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px; border-top: 4px solid #0D1F47">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="width: 40px; height: 40px; border-radius: 50%; background: #0D1F47; color: #FFFFFF; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center">3</span><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0D1F47" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">Análise e visualização</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #33415C">Transformamos a base em análises e dashboards que respondem às perguntas certas.</p>
+</li>
+<li class="gwp-card" style="background: #FFFFFF; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 10px; border-top: 4px solid #0A72D1">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="width: 40px; height: 40px; border-radius: 50%; background: #0A72D1; color: #FFFFFF; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center">4</span><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0A72D1" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg></div>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700">Acompanhamento ao vivo</h3>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #33415C">Colocamos os indicadores em tempo real e evoluímos a solução com o seu time.</p>
+</li>
+</ol>
+</div>
+</section>
+
+<!-- DADOS + IA -->
+<section id="ia" style="background: #FFFFFF">
+<div class="gwp-wrap" style="max-width: 1200px; margin: 0 auto; padding: 80px 32px; display: flex; flex-wrap: wrap; gap: 40px; align-items: center">
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #0A72D1">+ Dados &amp; IA</span>
+<h2 class="gwp-h2" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700">Dados estruturados hoje. <span style="color: #0A72D1">IA aplicada amanhã.</span></h2>
+<p style="margin: 0; font-size: 17px; line-height: 1.6; color: #33415C">Inteligência artificial só funciona sobre uma base confiável. Organizamos seus dados para que previsões, detecção de anomalias e alertas inteligentes saiam do discurso e entrem na rotina.</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px">
+<div style="background: #EAF1FA; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A72D1" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"></path><path d="M14 7h7v7"></path></svg><strong style="font-size: 15px">Previsões</strong><span style="font-size: 13px; color: #33415C">Demanda, vendas e metas.</span></div>
+<div style="background: #EAF1FA; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A72D1" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6M12 16.5v.5"></path></svg><strong style="font-size: 15px">Anomalias</strong><span style="font-size: 13px; color: #33415C">Desvios detectados cedo.</span></div>
+<div style="background: #EAF1FA; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0A72D1" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"></path></svg><strong style="font-size: 15px">Insights</strong><span style="font-size: 13px; color: #33415C">Respostas em linguagem natural.</span></div>
+</div>
+</div>
+<div style="flex: 1 1 460px; min-width: 0; background: #0D1F47; background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 28px 28px; border-radius: 20px; padding: 20px">
+<svg viewBox="0 0 460 300" width="100%" role="img" aria-label="Diagrama: fontes de dados passam por uma rede neural e geram previsões, alertas e insights">
+<g font-family="JetBrains Mono, monospace" font-size="11" fill="#DCE4F2">
+<text x="8" y="20">FONTES</text><text x="196" y="20">MODELO</text><text x="372" y="20">SAÍDAS</text>
+</g>
+<g stroke="#1E9BEF" stroke-opacity="0.45" stroke-width="1.2" fill="none">
+<path class="gwp-flow" d="M86 60 L200 90 M86 60 L200 150 M86 60 L200 210 M86 120 L200 90 M86 120 L200 150 M86 120 L200 210 M86 180 L200 90 M86 180 L200 150 M86 180 L200 210 M86 240 L200 150 M86 240 L200 210 M86 240 L200 90"></path>
+<path class="gwp-flow" d="M200 90 L270 120 M200 90 L270 180 M200 150 L270 120 M200 150 L270 180 M200 210 L270 120 M200 210 L270 180"></path>
+<path class="gwp-flow" d="M270 120 L360 80 M270 120 L360 150 M270 120 L360 220 M270 180 L360 80 M270 180 L360 150 M270 180 L360 220"></path>
+</g>
+<g font-family="JetBrains Mono, monospace" font-size="11" fill="#FFFFFF" text-anchor="middle">
+<rect x="8" y="48" width="78" height="24" rx="6" fill="#142A5C" stroke="#24407A"></rect><text x="47" y="64">ERP</text>
+<rect x="8" y="108" width="78" height="24" rx="6" fill="#142A5C" stroke="#24407A"></rect><text x="47" y="124">CRM</text>
+<rect x="8" y="168" width="78" height="24" rx="6" fill="#142A5C" stroke="#24407A"></rect><text x="47" y="184">Planilhas</text>
+<rect x="8" y="228" width="78" height="24" rx="6" fill="#142A5C" stroke="#24407A"></rect><text x="47" y="244">APIs</text>
+</g>
+<g fill="#1E9BEF">
+<circle class="gwp-node" cx="200" cy="90" r="9"></circle><circle class="gwp-node d1" cx="200" cy="150" r="9"></circle><circle class="gwp-node d2" cx="200" cy="210" r="9"></circle>
+<circle class="gwp-node d3" cx="270" cy="120" r="9"></circle><circle class="gwp-node d4" cx="270" cy="180" r="9"></circle>
+</g>
+<g font-family="JetBrains Mono, monospace" font-size="11" fill="#FFFFFF" text-anchor="middle">
+<rect x="360" y="68" width="92" height="24" rx="6" fill="#0A72D1"></rect><text x="406" y="84">Previsão</text>
+<rect x="360" y="138" width="92" height="24" rx="6" fill="#0A72D1"></rect><text x="406" y="154">Alerta</text>
+<rect x="360" y="208" width="92" height="24" rx="6" fill="#0A72D1"></rect><text x="406" y="224">Insight</text>
+</g>
+<text x="230" y="288" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#A9B6CE">dados → estrutura → modelo → decisão</text>
+</svg>
+</div>
+</div>
+</section>
+
+<!-- LIVE TRACKING HIGHLIGHT -->
+<section id="live" style="background: linear-gradient(120deg, #0D1F47 0%, #0D1F47 45%, #0A5BAA 100%); color: #FFFFFF">
+<div class="gwp-wrap" style="max-width: 1200px; margin: 0 auto; padding: 80px 32px; display: flex; flex-wrap: wrap; gap: 40px; align-items: center">
+<div style="flex: 1 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #6CC0F7">/ 03 Live Tracking</span>
+<h2 class="gwp-h2" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700">Pare de olhar o retrovisor.</h2>
+<p style="margin: 0; font-size: 17px; line-height: 1.6; max-width: 500px; color: #DCE4F2">Vendas, pedidos, atendimento, produção ou campanhas: o que é crítico para o seu negócio em uma tela que se atualiza sozinha — com alertas quando algo foge do esperado.</p>
+<a href="#contato" style="align-self: flex-start; background: #FFFFFF; color: #0D1F47; font-weight: 600; font-size: 16px; padding: 14px 24px; border-radius: 999px; min-height: 48px; display: inline-flex; align-items: center">Quero ver meus dados ao vivo</a>
+<div aria-hidden="true" style="display: flex; align-items: flex-end; gap: 5px; height: 52px; max-width: 420px; width: 100%"><span class="gwp-eq" style="animation-delay: 0.00s; flex: 1 1 0; height: 28px; background: #6CC0F7; border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.13s; flex: 1 1 0; height: 40px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.26s; flex: 1 1 0; height: 22px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.39s; flex: 1 1 0; height: 48px; background: #6CC0F7; border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.52s; flex: 1 1 0; height: 34px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.65s; flex: 1 1 0; height: 44px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.78s; flex: 1 1 0; height: 26px; background: #6CC0F7; border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.91s; flex: 1 1 0; height: 52px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 1.04s; flex: 1 1 0; height: 38px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 1.17s; flex: 1 1 0; height: 30px; background: #6CC0F7; border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 1.30s; flex: 1 1 0; height: 46px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.03s; flex: 1 1 0; height: 24px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.16s; flex: 1 1 0; height: 42px; background: #6CC0F7; border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.29s; flex: 1 1 0; height: 36px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.42s; flex: 1 1 0; height: 50px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.55s; flex: 1 1 0; height: 28px; background: #6CC0F7; border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.68s; flex: 1 1 0; height: 40px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.81s; flex: 1 1 0; height: 32px; background: rgba(255,255,255,0.35); border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 0.94s; flex: 1 1 0; height: 46px; background: #6CC0F7; border-radius: 3px"></span><span class="gwp-eq" style="animation-delay: 1.07s; flex: 1 1 0; height: 26px; background: rgba(255,255,255,0.35); border-radius: 3px"></span></div>
+</div>
+<div style="flex: 1 1 440px; min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px">
+<div class="gwp-card" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 8px">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6CC0F7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Atualização contínua</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #DCE4F2">Indicadores atualizados direto da fonte, sem exportação manual.</p>
+</div>
+<div class="gwp-card" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 8px">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6CC0F7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Alertas inteligentes</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #DCE4F2">Avisos quando uma meta, um limite ou um padrão é rompido.</p>
+</div>
+<div class="gwp-card" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 8px">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6CC0F7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Telas de operação</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #DCE4F2">Layouts pensados para TVs, salas de guerra e eventos.</p>
+</div>
+<div class="gwp-card" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 8px">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6CC0F7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"></path></svg>
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700">Histórico preservado</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #DCE4F2">O que acontece ao vivo também alimenta suas análises depois.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- AUDIENCE -->
+<section id="para-quem" style="background: #FFFFFF">
+<div class="gwp-wrap" style="max-width: 1200px; margin: 0 auto; padding: 80px 32px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 720px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #0A72D1">/ 04 Para quem</span>
+<h2 class="gwp-h2" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700">Feito para quem toca o negócio.</h2>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px">
+<div class="gwp-card" style="background: #EAF1FA; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column">
+<h3 style="margin: 0; background: #0D1F47; color: #FFFFFF; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; padding: 16px 22px">Diretoria</h3>
+<div style="padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #33415C">Reuniões que começam discutindo de onde veio o número.</p>
+<p style="margin: 0; font-size: 15px; line-height: 1.55"><strong style="color: #0A72D1">O que muda:</strong> uma visão única da empresa, pronta antes da reunião.</p>
+</div>
+</div>
+<div class="gwp-card" style="background: #EAF1FA; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column">
+<h3 style="margin: 0; background: #0A72D1; color: #FFFFFF; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; padding: 16px 22px">Financeiro</h3>
+<div style="padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #33415C">Fechamentos lentos e conciliação feita à mão.</p>
+<p style="margin: 0; font-size: 15px; line-height: 1.55"><strong style="color: #0A72D1">O que muda:</strong> resultados consolidados automaticamente e confiáveis.</p>
+</div>
+</div>
+<div class="gwp-card" style="background: #EAF1FA; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column">
+<h3 style="margin: 0; background: #0D1F47; color: #FFFFFF; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; padding: 16px 22px">Comercial e Marketing</h3>
+<div style="padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #33415C">Campanhas avaliadas só depois que o orçamento acabou.</p>
+<p style="margin: 0; font-size: 15px; line-height: 1.55"><strong style="color: #0A72D1">O que muda:</strong> funil e resultado acompanhados ao vivo, com ajuste no caminho.</p>
+</div>
+</div>
+<div class="gwp-card" style="background: #EAF1FA; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column">
+<h3 style="margin: 0; background: #0A72D1; color: #FFFFFF; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; padding: 16px 22px">Operações</h3>
+<div style="padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #33415C">Gargalos descobertos quando o cliente já reclamou.</p>
+<p style="margin: 0; font-size: 15px; line-height: 1.55"><strong style="color: #0A72D1">O que muda:</strong> alertas em tempo real e ação antes do impacto.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- CASES -->
+<section id="cases" style="background-color: #0D1F47; background-image: linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px); background-size: 40px 40px;  color: #FFFFFF">
+<div class="gwp-wrap" style="max-width: 1200px; margin: 0 auto; padding: 80px 32px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; flex-wrap: wrap; gap: 16px 48px; align-items: flex-end; justify-content: space-between">
+<div style="flex: 1 1 480px; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #6CC0F7">/ 05 Cases</span>
+<h2 class="gwp-h2" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700">Resultados, não promessas.</h2>
+</div>
+<p style="margin: 0; flex: 1 1 340px; font-size: 17px; line-height: 1.6; color: #DCE4F2">Alguns projetos em que estruturamos, analisamos e colocamos dados de clientes em movimento.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px">
+<article class="gwp-card" style="background: #FFFFFF; color: #0D1F47; border-radius: 18px; overflow: hidden; display: flex; flex-direction: column">
+<div style="position: relative; background: linear-gradient(120deg, #0A72D1, #1E9BEF); padding: 24px; display: flex; flex-direction: column; gap: 6px; color: #FFFFFF">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase">Arquitetura + Dashboards</span>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.02em">[RESULTADO 1]</span>
+<span style="font-size: 13px">[métrica — ex.: redução de tempo de fechamento]</span>
+<svg aria-hidden="true" viewBox="0 0 120 36" width="120" height="30" style="position: absolute; right: 20px; top: 22px; opacity: 0.9"><path d="M0 30 L20 26 L40 28 L60 18 L80 20 L100 10 L120 6" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="120" cy="6" r="3" fill="#FFFFFF"></circle></svg>
+</div>
+<div style="padding: 22px 24px; display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto">
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700">[Título do case 1]</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.55; color: #33415C">[Cliente / segmento] — [o desafio, o que a GWP Data entregou e o impacto, em duas frases.]</p>
+<a href="#contato" style="margin-top: auto; font-weight: 600; font-size: 15px; color: #0A72D1; min-height: 44px; display: inline-flex; align-items: center">Ver case →</a>
+</div>
+</article>
+<article class="gwp-card" style="background: #FFFFFF; color: #0D1F47; border-radius: 18px; overflow: hidden; display: flex; flex-direction: column">
+<div style="position: relative; background: linear-gradient(120deg, #0A72D1, #1E9BEF); padding: 24px; display: flex; flex-direction: column; gap: 6px; color: #FFFFFF">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase">Live Tracking</span>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.02em">[RESULTADO 2]</span>
+<span style="font-size: 13px">[métrica — ex.: redução de tempo de fechamento]</span>
+<svg aria-hidden="true" viewBox="0 0 120 36" width="120" height="30" style="position: absolute; right: 20px; top: 22px; opacity: 0.9"><path d="M0 20 L20 24 L40 14 L60 18 L80 8 L100 12 L120 4" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="120" cy="4" r="3" fill="#FFFFFF"></circle></svg>
+</div>
+<div style="padding: 22px 24px; display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto">
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700">[Título do case 2]</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.55; color: #33415C">[Cliente / segmento] — [o desafio, o que a GWP Data entregou e o impacto, em duas frases.]</p>
+<a href="#contato" style="margin-top: auto; font-weight: 600; font-size: 15px; color: #0A72D1; min-height: 44px; display: inline-flex; align-items: center">Ver case →</a>
+</div>
+</article>
+<article class="gwp-card" style="background: #FFFFFF; color: #0D1F47; border-radius: 18px; overflow: hidden; display: flex; flex-direction: column">
+<div style="position: relative; background: linear-gradient(120deg, #0A72D1, #1E9BEF); padding: 24px; display: flex; flex-direction: column; gap: 6px; color: #FFFFFF">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase">Análise de Dados</span>
+<span style="font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.02em">[RESULTADO 3]</span>
+<span style="font-size: 13px">[métrica — ex.: redução de tempo de fechamento]</span>
+<svg aria-hidden="true" viewBox="0 0 120 36" width="120" height="30" style="position: absolute; right: 20px; top: 22px; opacity: 0.9"><path d="M0 32 L20 28 L40 22 L60 24 L80 14 L100 12 L120 2" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="120" cy="2" r="3" fill="#FFFFFF"></circle></svg>
+</div>
+<div style="padding: 22px 24px; display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto">
+<h3 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700">[Título do case 3]</h3>
+<p style="margin: 0; font-size: 14px; line-height: 1.55; color: #33415C">[Cliente / segmento] — [o desafio, o que a GWP Data entregou e o impacto, em duas frases.]</p>
+<a href="#contato" style="margin-top: auto; font-weight: 600; font-size: 15px; color: #0A72D1; min-height: 44px; display: inline-flex; align-items: center">Ver case →</a>
+</div>
+</article>
+</div>
+</div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" style="background: #EAF1FA">
+<div class="gwp-wrap" style="max-width: 1200px; margin: 0 auto; padding: 80px 32px; display: flex; flex-wrap: wrap; gap: 32px 64px">
+<div style="flex: 1 1 300px; display: flex; flex-direction: column; gap: 14px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #0A72D1">/ 06 FAQ</span>
+<h2 class="gwp-h2" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700">Perguntas frequentes</h2>
+</div>
+<div style="flex: 2 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<details style="background: #FFFFFF; border-radius: 14px; padding: 16px 22px">
+<summary style="display: flex; justify-content: space-between; gap: 20px; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; min-height: 44px; align-items: center">Preciso ter os dados organizados para começar?<span class="gwp-plus" aria-hidden="true" style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #0D1F47; color: #FFFFFF; font-size: 20px; display: flex; align-items: center; justify-content: center">+</span></summary>
+<p style="margin: 10px 0 4px; font-size: 15px; line-height: 1.6; color: #33415C">Não. Organizar é justamente a primeira etapa. Partimos de onde sua empresa está hoje — planilhas, ERP, CRM ou bancos de dados — e estruturamos a partir daí.</p>
+</details>
+<details style="background: #FFFFFF; border-radius: 14px; padding: 16px 22px">
+<summary style="display: flex; justify-content: space-between; gap: 20px; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; min-height: 44px; align-items: center">Posso contratar só um dashboard?<span class="gwp-plus" aria-hidden="true" style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #0D1F47; color: #FFFFFF; font-size: 20px; display: flex; align-items: center; justify-content: center">+</span></summary>
+<p style="margin: 10px 0 4px; font-size: 15px; line-height: 1.6; color: #33415C">Sim. Os serviços podem ser contratados separadamente. No diagnóstico avaliamos se a base atual sustenta o painel ou se vale estruturar antes.</p>
+</details>
+<details style="background: #FFFFFF; border-radius: 14px; padding: 16px 22px">
+<summary style="display: flex; justify-content: space-between; gap: 20px; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; min-height: 44px; align-items: center">O que é um Live Tracking?<span class="gwp-plus" aria-hidden="true" style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #0D1F47; color: #FFFFFF; font-size: 20px; display: flex; align-items: center; justify-content: center">+</span></summary>
+<p style="margin: 10px 0 4px; font-size: 15px; line-height: 1.6; color: #33415C">É um painel de acompanhamento em tempo real: os indicadores se atualizam sozinhos conforme os eventos acontecem, com alertas quando algo sai do esperado.</p>
+</details>
+<details style="background: #FFFFFF; border-radius: 14px; padding: 16px 22px">
+<summary style="display: flex; justify-content: space-between; gap: 20px; font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; min-height: 44px; align-items: center">Meu time vai conseguir usar sozinho?<span class="gwp-plus" aria-hidden="true" style="flex: 0 0 32px; height: 32px; border-radius: 50%; background: #0D1F47; color: #FFFFFF; font-size: 20px; display: flex; align-items: center; justify-content: center">+</span></summary>
+<p style="margin: 10px 0 4px; font-size: 15px; line-height: 1.6; color: #33415C">Sim. Toda entrega inclui documentação e treinamento, para que a solução seja usada e mantida pelo seu time no dia a dia.</p>
+</details>
+</div>
+</div>
+</section>
+
+<!-- CONTACT -->
+<section id="contato" style="background-color: #0D1F47; background-image: linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px); background-size: 40px 40px;  color: #FFFFFF">
+<div class="gwp-wrap" style="max-width: 1200px; margin: 0 auto; padding: 80px 32px; display: flex; flex-wrap: wrap; gap: 40px 64px; align-items: center">
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #6CC0F7">/ 07 Contato</span>
+<h2 class="gwp-h2" style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 700">Vamos colocar seus dados para trabalhar.</h2>
+<p style="margin: 0; font-size: 17px; line-height: 1.6; color: #DCE4F2">Conte o seu desafio. Respondemos com um próximo passo claro — sem compromisso.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 15px; text-align: center">
+<a href="mailto:contato@gwpdata.com" style="color: #FFFFFF; background: #142A5C; border: 1px solid #24407A; border-radius: 999px; padding: 10px 18px; min-height: 44px; display: inline-flex; align-items: center">contato@gwpdata.com</a>
+<span style="background: #142A5C; border: 1px solid #24407A; border-radius: 999px; padding: 10px 18px; min-height: 44px; display: inline-flex; align-items: center">São Paulo, Brazil</span>
+</div>
+</div>
+<form id="gwp-form" class="gwp-form" style="flex: 1 1 460px; min-width: 0; background: #FFFFFF; color: #0D1F47; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: #0D1F47">Nome
+<input type="text" name="nome" autocomplete="name" required placeholder="Seu nome" style="background: #EAF1FA; border: 1px solid #C9D3E3; border-radius: 10px; padding: 12px 14px; min-height: 46px; color: #0D1F47; font-size: 16px; font-family: Inter, sans-serif">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: #0D1F47">Empresa
+<input type="text" name="empresa" autocomplete="organization" placeholder="Nome da empresa" style="background: #EAF1FA; border: 1px solid #C9D3E3; border-radius: 10px; padding: 12px 14px; min-height: 46px; color: #0D1F47; font-size: 16px; font-family: Inter, sans-serif">
+</label>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: #0D1F47">E-mail corporativo
+<input type="email" name="email" autocomplete="email" required placeholder="voce@empresa.com.br" style="background: #EAF1FA; border: 1px solid #C9D3E3; border-radius: 10px; padding: 12px 14px; min-height: 46px; color: #0D1F47; font-size: 16px; font-family: Inter, sans-serif">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: #0D1F47">Qual serviço interessa mais?
+<select name="servico" style="background: #EAF1FA; border: 1px solid #C9D3E3; border-radius: 10px; padding: 12px 14px; min-height: 46px; color: #0D1F47; font-size: 16px; font-family: Inter, sans-serif">
+<option>Arquitetura e Estruturação de Dados</option>
+<option>Análise de Dados</option>
+<option>Dashboards</option>
+<option>Live Trackings</option>
+<option>Ainda não sei — quero um diagnóstico</option>
+</select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: #0D1F47">Mensagem
+<textarea name="mensagem" rows="3" placeholder="Conte rapidamente o seu desafio" style="background: #EAF1FA; border: 1px solid #C9D3E3; border-radius: 10px; padding: 12px 14px; color: #0D1F47; font-size: 16px; font-family: Inter, sans-serif; resize: vertical"></textarea>
+</label>
+<button type="submit" style="background: #0A72D1; color: #FFFFFF; border: 0; font-weight: 600; font-size: 16px; padding: 14px 24px; border-radius: 999px; min-height: 50px; cursor: pointer; font-family: Inter, sans-serif">Enviar mensagem</button>
+</form>
+</div>
+</section>
+
+</div>
+<script>
+(function () {
+  // ---- mobile menu ----
+  var burger = document.querySelector('.gwp-burger');
+  var nav = document.getElementById('gwp-nav');
+  function closeNav() { nav.classList.remove('is-open'); burger.setAttribute('aria-expanded', 'false'); burger.setAttribute('aria-label', 'Abrir menu'); }
+  burger.addEventListener('click', function () {
+    var open = nav.classList.toggle('is-open');
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    burger.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+  });
+  nav.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', closeNav); });
+  window.addEventListener('resize', function () { if (window.innerWidth > 768) closeNav(); });
+
+  // ---- live panel (dados fictícios) ----
+  var W = 400, H = 130, N = 30;
+  var series = [], v = 42, orders = 3184;
+  for (var i = 0; i < N; i++) { v = Math.max(18, Math.min(78, v + (Math.random() - 0.45) * 9)); series.push(v); }
+  var elClock = document.getElementById('gwp-clock'), elOrders = document.getElementById('gwp-orders'),
+      elRate = document.getElementById('gwp-rate'), elDelta = document.getElementById('gwp-delta'),
+      elArea = document.getElementById('gwp-area'), elLine = document.getElementById('gwp-line'),
+      elDot = document.getElementById('gwp-dot'), elDeltaTxt = document.querySelectorAll('.gwp-delta-txt');
+  function pad(x) { return (x < 10 ? '0' : '') + x; }
+  function render() {
+    var pts = series.map(function (val, i) { return [(i / (N - 1)) * W, H - (val / 90) * H]; });
+    var line = pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+    elLine.setAttribute('points', line);
+    elArea.setAttribute('points', '0,' + H + ' ' + line + ' ' + W + ',' + H);
+    elDot.setAttribute('cx', pts[N - 1][0]); elDot.setAttribute('cy', pts[N - 1][1]);
+    var avg = series.reduce(function (a, b) { return a + b; }, 0) / N, cur = series[N - 1];
+    var d = ((cur - avg) / avg) * 100, txt = (d >= 0 ? '+' : '') + d.toFixed(1).replace('.', ',') + '%';
+    elRate.textContent = Math.round(cur);
+    elDelta.textContent = txt; elDelta.style.color = d >= 0 ? '#5FD4A0' : '#FF9B9B';
+    elDeltaTxt.forEach(function (e) { e.textContent = txt; });
+    elOrders.textContent = orders.toLocaleString('pt-BR');
+    var t = new Date(); elClock.textContent = pad(t.getHours()) + ':' + pad(t.getMinutes()) + ':' + pad(t.getSeconds());
+  }
+  function tick() {
+    var last = series[N - 1], next = Math.max(18, Math.min(78, last + (Math.random() - 0.45) * 10));
+    series.shift(); series.push(next); orders += Math.round(next / 12); render();
+  }
+  render();
+  setInterval(function () { if (!document.hidden) tick(); }, 1500);
+
+  // ---- contact form -> e-mail (site estático, sem backend) ----
+  var form = document.getElementById('gwp-form');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = form.elements;
+    var body = 'Nome: ' + f.nome.value + '\nEmpresa: ' + f.empresa.value + '\nE-mail: ' + f.email.value +
+               '\nServiço: ' + f.servico.value + '\n\n' + f.mensagem.value;
+    window.location.href = 'mailto:contato@gwpdata.com?subject=' + encodeURIComponent('Contato pelo site — ' + (f.empresa.value || f.nome.value)) +
+                           '&body=' + encodeURIComponent(body);
+  });
+})();
+</script>
+</body>
+</html>
